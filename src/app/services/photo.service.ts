@@ -11,6 +11,8 @@ export class PhotoService {
   // properties
   public photos: UserPhoto[] = [];
 
+  private PHOTO_STORAGE: string = "photos";
+
   constructor() { }
 
   public async addNewToGallery() {
@@ -31,6 +33,14 @@ export class PhotoService {
     const savedImageFile = await this.savePicture(capturePhoto);
     // adds photo to beginning of the array
     this.photos.unshift(savedImageFile);
+
+
+
+    // saves the photos array... stored each time a new photo is taken
+    Storage.set({
+      key: this.PHOTO_STORAGE,
+      value: JSON.stringify(this.photos)
+    });
   }
 
   private async savePicture(cameraPhoto: CameraPhoto) {
@@ -70,4 +80,29 @@ export class PhotoService {
     };
     reader.readAsDataURL(blob);
   });
+
+
+  public async loadSaved() {
+    // retrieve cached photo array data
+    const photoList = await Storage.get({
+      key: this.PHOTO_STORAGE
+    });
+    this.photos = JSON.parse(photoList.value) || [];
+
+    // display the photo by reading into base64 format
+    for (let photo of this.photos) {
+      // read each saved photo's data from the Filesystem
+      const readFile = await Filesystem.readFile({
+        path: photo.filepath,
+        directory: Directory.Data
+      });
+
+      // web platform only: Load the phto as base64 data
+      photo.webviewPath = `data:image/jpeg;base64,${readFile.data}`;
+    }
+  }
+
+
+
+
 }
